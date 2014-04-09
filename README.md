@@ -1,5 +1,7 @@
 # Go Serial library
 
+[![Build Status](https://travis-ci.org/samofly/serial.svg?branch=master)](https://travis-ci.org/samofly/serial)
+
 Currently, it only supports Linux and is mostly tested on ARM and x86_64 architectures.
 There's no dependency on CGO and it directly calls Linux kernel.
 

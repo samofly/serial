@@ -1,7 +1,5 @@
 # Go Serial library
 
-[![](https://goci.herokuapp.com/project/image/github.com/samofly/serial)](http://goci.me/project/github.com/samofly/serial)
-
 Currently, it only supports Linux and is mostly tested on ARM and x86_64 architectures.
 There's no dependency on CGO and it directly calls Linux kernel.
 

@@ -14,8 +14,8 @@ package serial
 // ===================
 //
 // The values are the same for arm, i386 and x86_64.
-// They might be different on other architectures, like MIPS or SPARC.
-// If ever needed, this file may actually become arch-specific.
+// The values for MIPS32 LE are different and provided in termios_mipsle.go.
+// Other architectures are not yet supported.
 
 // Constants from ./arch/{arm,i386,x86_64}/bits/termios.h
 

@@ -13,9 +13,7 @@ package serial
 // which can be covered by copyright.
 // ===================
 //
-// The values are the same for arm, i386 and x86_64.
-// They might be different on other architectures, like MIPS or SPARC.
-// If ever needed, this file may actually become arch-specific.
+// The values are the same for MIPS32 LE architecture.
 
 // Constants from ./arch/mips/bits/termios.h
 

@@ -1,4 +1,4 @@
-// +build !mipsle
+// +build mipsle
 
 package serial
 
@@ -13,30 +13,29 @@ package serial
 // which can be covered by copyright.
 // ===================
 //
-// The values are the same for arm, i386 and x86_64.
-// The values for MIPS32 LE are different and provided in termios_mipsle.go.
-// Other architectures are not yet supported.
+// The values are the same for MIPS32 LE architecture.
 
-// Constants from ./arch/{arm,i386,x86_64}/bits/termios.h
+// Constants from ./arch/mips/bits/termios.h
 
 const (
 	VINTR    = 0
 	VQUIT    = 1
 	VERASE   = 2
 	VKILL    = 3
-	VEOF     = 4
+	VMIN     = 4
 	VTIME    = 5
-	VMIN     = 6
+	VEOL2    = 6
 	VSWTC    = 7
+	VSWTCH   = 7
 	VSTART   = 8
 	VSTOP    = 9
 	VSUSP    = 10
-	VEOL     = 11
 	VREPRINT = 12
 	VDISCARD = 13
 	VWERASE  = 14
 	VLNEXT   = 15
-	VEOL2    = 16
+	VEOF     = 16
+	VEOL     = 17
 
 	IGNBRK  = 0000001
 	BRKINT  = 0000002
@@ -133,20 +132,21 @@ const (
 	HUPCL  = 0002000
 	CLOCAL = 0004000
 
-	ISIG   = 0000001
-	ICANON = 0000002
-	ECHO   = 0000010
-	ECHOE  = 0000020
-	ECHOK  = 0000040
-	ECHONL = 0000100
-	NOFLSH = 0000200
-	TOSTOP = 0000400
-	IEXTEN = 0100000
+	ISIG    = 0000001
+	ICANON  = 0000002
+	ECHO    = 0000010
+	ECHOE   = 0000020
+	ECHOK   = 0000040
+	ECHONL  = 0000100
+	NOFLSH  = 0000200
+	IEXTEN  = 0000400
+	TOSTOP  = 0100000
+	ITOSTOP = 0100000
 
 	ECHOCTL = 0001000
 	ECHOPRT = 0002000
 	ECHOKE  = 0004000
-	FLUSHO  = 0010000
+	FLUSHO  = 0020000
 	PENDIN  = 0040000
 
 	TCOOFF = 0
@@ -168,19 +168,19 @@ const (
 	XTABS   = 0014000
 )
 
-// Constants from ./arch/{arm,i386,x86_64}/bits/ioctl.h
+// Constants from ./arch/mips/bits/ioctl.h
 const (
-	TCGETS  = 0x5401
-	TCSETS  = 0x5402
-	TCSETSW = 0x5403
-	TCSETSF = 0x5404
-	TCGETA  = 0x5405
-	TCSETA  = 0x5406
-	TCSETAW = 0x5407
-	TCSETAF = 0x5408
-	TCSBRK  = 0x5409
-	TCXONC  = 0x540A
-	TCFLSH  = 0x540B
+	TCGETA  = 0x5401
+	TCSETA  = 0x5402
+	TCSETAW = 0x5403
+	TCSETAF = 0x5404
+	TCSBRK  = 0x5405
+	TCXONC  = 0x5406
+	TCFLSH  = 0x5407
+	TCGETS  = 0x540D
+	TCSETS  = 0x540E
+	TCSETSW = 0x540F
+	TCSETSF = 0x5410
 
-	TIOCGSID = 0x5429
+	TIOCGSID = 0x7416
 )

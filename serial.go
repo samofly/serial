@@ -16,10 +16,6 @@ type Port interface {
 // Open opens a serial port with the specified name (like, /dev/ttyUSB0) and baud rate.
 // It will create a raw, local, 8N1 serial connection.
 func Open(name string, baud int) (Port, error) {
-	br, err := convRate(baud)
-	if err != nil {
-		return nil, err
-	}
 	f, err := os.OpenFile(name, os.O_RDWR|syscall.O_NOCTTY, 0)
 	if err != nil {
 		return nil, err
@@ -29,11 +25,37 @@ func Open(name string, baud int) (Port, error) {
 			f.Close()
 		}
 	}()
-
 	tio := newRaw()
+	if baud == 250000 {
+		var ss serial_struct
+		fmt.Fprintf(os.Stderr, "sizeof(ss): %d\n", unsafe.Sizeof(ss))
+		if err = ioctlSS(f.Fd(), syscall.TIOCGSERIAL, &ss); err != nil {
+			return nil, fmt.Errorf("failed to request serial_struct: %v", err)
+		}
+		ss.flags &= ^ASYNC_SPD_MASK
+		ss.flags |= ASYNC_SPD_CUST
+		ss.custom_divisor = uint32((int(ss.baud_base) + (baud / 2)) / baud)
+		if ss.custom_divisor < 1 {
+			ss.custom_divisor = 1
+		}
+		if err = ioctlSS(f.Fd(), syscall.TIOCSSERIAL, &ss); err != nil {
+			return nil, fmt.Errorf("failed to set custom baud rate: %v", err)
+		}
+		if err = ioctlSS(f.Fd(), syscall.TIOCSSERIAL, &ss); err != nil {
+			return nil, fmt.Errorf("failed to set custom baud rate (second pass): %v", err)
+		}
+		if err = tio.setSpeed(B38400); err != nil {
+			return nil, err
+		}
+	} else {
+		br, err := convRate(baud)
+		if err != nil {
+			return nil, err
+		}
 
-	if err = tio.setSpeed(br); err != nil {
-		return nil, err
+		if err = tio.setSpeed(br); err != nil {
+			return nil, err
+		}
 	}
 	if err = tio.apply(f.Fd()); err != nil {
 		return nil, err
@@ -42,7 +64,7 @@ func Open(name string, baud int) (Port, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to query serial attributes: %v", err)
 	}
-	if tio.speed() != tio2.speed() {
+	if tio.speed() != tio2.speed() && baud != 250000 {
 		return nil, fmt.Errorf("failed to set baud rate. Want: %d, got: %d", tio.speed(), tio2.speed())
 	}
 
@@ -117,6 +139,27 @@ type termios struct {
 	unused1 uint32
 }
 
+type serial_struct struct {
+	typ             uint32
+	line            uint32
+	port            uint32
+	irq             uint32
+	flags           int32
+	xmit_fifo_size  uint32
+	custom_divisor  uint32
+	baud_base       uint32
+	close_delay     uint16
+	io_type         byte
+	reserved_char   byte
+	hub6            int
+	closing_wait    uint16
+	closing_wait2   uint16
+	iomem_base      uintptr
+	iomem_reg_shift uint16
+	port_high       uint32
+	iomap_base      int64
+}
+
 func newRaw() *termios {
 	return &termios{
 		cflag: CS8 | CLOCAL | CREAD | HUPCL,
@@ -140,7 +183,13 @@ func (tio *termios) speed() uint32 {
 // apply sets serial attributes to the fd.
 func (tio *termios) apply(fd uintptr) error {
 	// TODO(krasin): may be also support TCSETSW
-	return ioctl(fd, TCSETSF, tio)
+	if err := ioctl(fd, TCSETSF, tio); err != nil {
+		return err
+	}
+	//if err := fcntl(fd, syscall.F_SETFL, 0); err != nil {
+	//	return err
+	//}
+	return nil
 }
 
 // query gets serial attributes from the fd.
@@ -150,6 +199,18 @@ func query(fd uintptr) (*termios, error) {
 		return nil, err
 	}
 	return tio, nil
+}
+
+func rawFcntl(fd uintptr, cmd int, arg uintptr) error {
+	_, _, err := syscall.RawSyscall(syscall.SYS_FCNTL, fd, uintptr(cmd), arg)
+	if err != 0 {
+		return err
+	}
+	return nil
+}
+
+func fcntl(fd uintptr, cmd int, arg int) error {
+	return rawFcntl(fd, cmd, uintptr(arg))
 }
 
 func rawIoctl(fd uintptr, req uint, arg uintptr) error {
@@ -163,3 +224,18 @@ func rawIoctl(fd uintptr, req uint, arg uintptr) error {
 func ioctl(fd uintptr, req uint, tio *termios) error {
 	return rawIoctl(fd, req, uintptr(unsafe.Pointer(tio)))
 }
+
+func ioctlSS(fd uintptr, req uint, ss *serial_struct) error {
+	return rawIoctl(fd, req, uintptr(unsafe.Pointer(ss)))
+}
+
+const (
+	ASYNCB_SPD_HI  = 4  /* Use 57600 instead of 38400 bps */
+	ASYNCB_SPD_VHI = 5  /* Use 115200 instead of 38400 bps */
+	ASYNCB_SPD_SHI = 12 /* Use 230400 instead of 38400 bps */
+	ASYNC_SPD_HI   = (1 << ASYNCB_SPD_HI)
+	ASYNC_SPD_SHI  = (1 << ASYNCB_SPD_SHI)
+	ASYNC_SPD_VHI  = (1 << ASYNCB_SPD_VHI)
+	ASYNC_SPD_CUST = (ASYNC_SPD_HI | ASYNC_SPD_VHI)
+	ASYNC_SPD_MASK = (ASYNC_SPD_HI | ASYNC_SPD_VHI | ASYNC_SPD_SHI)
+)
